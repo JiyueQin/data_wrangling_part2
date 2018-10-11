@@ -1,0 +1,119 @@
+---
+title: "reading_data_from_the_web"
+author: "JiyueQin"
+date: "October 11, 2018"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(rvest)
+library(httr)
+```
+
+# Extracting tables
+
+```{r}
+url = "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+drug_use_xml = read_html(url)
+
+drug_use_xml
+
+## try to get tables
+drug_use_xml %>%
+  html_nodes(css = "table") # we extract all the tables.
+
+table_marj = (drug_use_xml %>% html_nodes(css = "table"))[[1]] %>%
+  html_table()  # sometimes works if lucky. generate the 
+class(table_marj) 
+
+table_marj = (drug_use_xml %>% html_nodes(css = "table"))[[1]] %>%
+  html_table() %>%
+  .[-1,] %>% 
+  as_tibble()
+
+table_marj = (drug_use_xml %>% html_nodes(css = "table"))[[1]] %>%
+  html_table() %>%
+  slice(-1) %>%       
+  as_tibble()
+```
+
+`slice()` can select rows by numbers, but you often want to filter by name because the numbers can change.
+thus, using filter is more safer.
+```{r }
+url_2 = "https://www.bestplaces.net/cost_of_living/city/new_york/new_york"
+newyork_xml = read_html(url_2)
+newyork_table = newyork_xml %>% 
+  html_nodes(css = "table") %>%
+  .[[1]] %>%  
+  html_table(header = TRUE)
+
+# this doesn't work.
+#newyork_table = newyork_xml %>% 
+  #html_nodes(css = "table")[[1]] 
+
+```
+# CSS selectors
+
+```{r}
+hpsaga_html = read_html("https://www.imdb.com/list/ls000630791/")
+
+title_vec = hpsaga_html %>%
+  html_nodes(".lister-item-header a") %>%
+  html_text()
+
+gross_rev_vec = hpsaga_html %>%
+  html_nodes(".text-small:nth-child(7) span:nth-child(5)") %>%
+  html_text()
+
+runtime_vec = hpsaga_html %>%
+  html_nodes(".runtime") %>%
+  html_text()
+
+hpsata_df = tibble(
+  title = title_vec,
+  rev = gross_rev_vec,
+  runtime = runtime_vec
+)
+review_html = read_html("https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=1")
+review_title = review_html %>% 
+  html_nodes("#cm_cr-review_list .a-color-base") %>% 
+  html_text()
+star = review_html %>% 
+  html_nodes("#cm_cr-review_list .review-rating") %>% 
+  html_text()
+review_text = review_html %>% 
+  html_nodes(".review-text") %>% 
+  html_text()
+review_df = tibble(review_title, star, review_text)
+
+review_html = read_html("https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=2")
+review_title = review_html %>% 
+  html_nodes("#cm_cr-review_list .a-color-base") %>% 
+  html_text()
+star = review_html %>% 
+  html_nodes("#cm_cr-review_list .review-rating") %>% 
+  html_text()
+review_text = review_html %>% 
+  html_nodes(".review-text") %>% 
+  html_text()
+tibble(review_title, star, review_text)
+```
+
+# Using an API
+
+```{r}
+nyc_water = GET("https://data.cityofnewyork.us/resource/waf7-5gvc.csv") %>% 
+  content("parsed")
+
+nyc_water = GET("https://data.cityofnewyork.us/resource/waf7-5gvc.json") %>% 
+  content("text") %>%
+  jsonlite::fromJSON() %>%
+  as_tibble()
+
+# using the download addresss
+ny= GET("https://data.cityofnewyork.us/api/views/ia2d-e54m/rows.csv?accessType=DOWNLOAD") %>%
+  content("parsed")
+
+
+```
