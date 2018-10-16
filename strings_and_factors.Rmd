@@ -13,7 +13,66 @@ theme_set(theme_bw())
 theme_update(legend.position = "bottom")
 ```
 
+```{r string}
+string_vec = c("my", "name", "is", "jeff")
+
+str_detect(string_vec, "jeff")
+
+str_replace(string_vec, "jeff", "Jeff")
+string_vec = c(
+  "i think we all rule for participating",
+  "i think i have been caught",
+  "i think this will be quite fun actually",
+  "it will be fun, i think"
+  )
+
+str_detect(string_vec, "^i think")    # match i think at the beginnning
+
+str_detect(string_vec, "i think$")   #match i think at the end
+
+string_vec = c(
+  "Y'all remember Pres. HW Bush?",
+  "I saw a green bush",
+  "BBQ and Bushwalking at Molonglo Gorge",
+  "BUSH!!"
+  )
+
+str_detect(string_vec,"[Bb]ush")   #can be B or b followed bt ush
+
+string_vec = c(
+  '7th inning stretch',
+  '1st half soon to begin. Texas won the toss.',
+  'she is 5 feet 4 inches tall',
+  '3AM - cant sleep :('
+  )
+str_detect(string_vec, "^[0-9][a-zA-Z]")    #find number immediately followed by letter.
+
+# special symbol . matches everything
+string_vec = c( 
+  'Its 7:11 in the evening',
+  'want to go to 7-11?',
+  'my flight is AA711',
+  'NetBios: scanning ip 203.167.114.66',
+  '72211')
+
+str_detect(string_vec, "7.11")
+
+# if you want to match the symmbol [.
+string_vec = c(
+  'The CI is [2, 5]',
+  ':-]',
+  ':-[',
+  'I found the answer on pages [6-7]'
+  )
+
+str_detect(string_vec, "\\[")
+
+```
+
 # Thoughts on factors
+
+if you don't specify the order, R treats them based on alphabeic .
+
 ```{r}
 vec_sex = factor(c("male", "male", "female", "female"))
 as.numeric(vec_sex)
@@ -24,6 +83,12 @@ vec_sex
 as.numeric(vec_sex)
 
 ```
+
+# revisit pulse data set
+
+instead of using `separate`, using `str_replace` here. also want to change the string into factor for plot.
+
+`str_c` is string concaternate function.
 
 ```{r}
 pulse_data = haven::read_sas("./data/public_pulse_data.sas7bdat") %>%
@@ -46,16 +111,18 @@ table_marj = (drug_use_xml %>% html_nodes(css = "table"))[[1]] %>%
   .[-1,] %>%
   as_tibble()
 
+
 data_marj = 
   table_marj %>%
   select(-contains("P Value")) %>%
   gather(key = key, value = percent, -State) %>%
   separate(key, into = c("age", "year"), sep = "\\(") %>%
   mutate(year = str_sub(year, 1, -2),
-         percent = str_replace(percent, "[a-z]", ""),
+         percent = str_replace(percent, "[a-z]", ""),    # [a-c]$ can be sensitive to changes
          percent = as.numeric(percent)) %>%
   filter(!(State %in% c("Total U.S.", "Northeast", "Midwest", "South", "West")))
 
+# reorder `State` by `percent` variable(order by median)
 data_marj %>%
   filter(age == "12-17") %>% 
   mutate(State = fct_reorder(State, percent)) %>% 
@@ -129,6 +196,36 @@ bmi_data %>%
   knitr::kable(digits = 3)
 ```
 
+# weather data
+```{r weather}
+weather_df = 
+  rnoaa::meteo_pull_monitors(c("USW00094728", "USC00519397", "USS0023B17S"),
+                      var = c("PRCP", "TMIN", "TMAX"), 
+                      date_min = "2017-01-01",
+                      date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY", 
+                      USC00519397 = "Waikiki_HA",
+                      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+weather_df
+
+weather_df %>%
+  mutate(name = fct_relevel(name, c("Waikiki_HA", "CentralPark_NY", "Waterhole_WA"))) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+
+weather_df %>%
+  mutate(name = fct_reorder(name, tmax)) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+
+```
+
 # Restaurant inspections
 ```{r}
 nyc_inspections = read_csv("./data/DOHMH_New_York_City_Restaurant_Inspection_Results.csv.gz", 
@@ -168,16 +265,19 @@ nyc_inspections %>%
   mutate(boro = fct_infreq(boro)) %>%
   ggplot(aes(x = boro, fill = grade)) + geom_bar()
 
+#if you want to relabel(change the name of the factor) the factor
+## this gives warning message and gives NA.
 nyc_inspections %>% 
   filter(str_detect(dba, regex("pizza", ignore_case = TRUE))) %>%
   mutate(boro = fct_infreq(boro),
          boro = replace(boro, which(boro == "Brooklyn"), "Hipsterville")) %>%
   ggplot(aes(x = boro, fill = grade)) + geom_bar()
-
+## instead, use fct_recode.
 nyc_inspections %>% 
   filter(str_detect(dba, regex("pizza", ignore_case = TRUE))) %>%
   mutate(boro = fct_infreq(boro),
          boro = fct_recode(boro, "Hipsterville" = "Brooklyn")) %>%
   ggplot(aes(x = boro, fill = grade)) + geom_bar()
-
+vec_sex = factor(c('male', 'female', 'male', 'female'))
+vec_sex[1] = "Male'"
 ```

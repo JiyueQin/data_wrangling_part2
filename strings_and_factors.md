@@ -3,8 +3,96 @@ strings\_and\_factors
 JiyueQin
 October 13, 2018
 
+``` r
+string_vec = c("my", "name", "is", "jeff")
+
+str_detect(string_vec, "jeff")
+```
+
+    ## [1] FALSE FALSE FALSE  TRUE
+
+``` r
+str_replace(string_vec, "jeff", "Jeff")
+```
+
+    ## [1] "my"   "name" "is"   "Jeff"
+
+``` r
+string_vec = c(
+  "i think we all rule for participating",
+  "i think i have been caught",
+  "i think this will be quite fun actually",
+  "it will be fun, i think"
+  )
+
+str_detect(string_vec, "^i think")    # match i think at the beginnning
+```
+
+    ## [1]  TRUE  TRUE  TRUE FALSE
+
+``` r
+str_detect(string_vec, "i think$")   #match i think at the end
+```
+
+    ## [1] FALSE FALSE FALSE  TRUE
+
+``` r
+string_vec = c(
+  "Y'all remember Pres. HW Bush?",
+  "I saw a green bush",
+  "BBQ and Bushwalking at Molonglo Gorge",
+  "BUSH!!"
+  )
+
+str_detect(string_vec,"[Bb]ush")   #can be B or b followed bt ush
+```
+
+    ## [1]  TRUE  TRUE  TRUE FALSE
+
+``` r
+string_vec = c(
+  '7th inning stretch',
+  '1st half soon to begin. Texas won the toss.',
+  'she is 5 feet 4 inches tall',
+  '3AM - cant sleep :('
+  )
+str_detect(string_vec, "^[0-9][a-zA-Z]")    #find number immediately followed by letter.
+```
+
+    ## [1]  TRUE  TRUE FALSE  TRUE
+
+``` r
+# special symbol . matches everything
+string_vec = c( 
+  'Its 7:11 in the evening',
+  'want to go to 7-11?',
+  'my flight is AA711',
+  'NetBios: scanning ip 203.167.114.66',
+  '72211')
+
+str_detect(string_vec, "7.11")
+```
+
+    ## [1]  TRUE  TRUE FALSE  TRUE FALSE
+
+``` r
+# if you want to match the symmbol [.
+string_vec = c(
+  'The CI is [2, 5]',
+  ':-]',
+  ':-[',
+  'I found the answer on pages [6-7]'
+  )
+
+str_detect(string_vec, "\\[")
+```
+
+    ## [1]  TRUE FALSE  TRUE  TRUE
+
 Thoughts on factors
 ===================
+
+if you don't specify the order, R treats them based on alphabeic .
 
 ``` r
 vec_sex = factor(c("male", "male", "female", "female"))
@@ -26,6 +114,13 @@ as.numeric(vec_sex)
 ```
 
     ## [1] 1 1 2 2
+
+revisit pulse data set
+======================
+
+instead of using `separate`, using `str_replace` here. also want to change the string into factor for plot.
+
+`str_c` is string concaternate function.
 
 ``` r
 pulse_data = haven::read_sas("./data/public_pulse_data.sas7bdat") %>%
@@ -52,16 +147,18 @@ table_marj = (drug_use_xml %>% html_nodes(css = "table"))[[1]] %>%
   .[-1,] %>%
   as_tibble()
 
+
 data_marj = 
   table_marj %>%
   select(-contains("P Value")) %>%
   gather(key = key, value = percent, -State) %>%
   separate(key, into = c("age", "year"), sep = "\\(") %>%
   mutate(year = str_sub(year, 1, -2),
-         percent = str_replace(percent, "[a-z]", ""),
+         percent = str_replace(percent, "[a-z]", ""),    # [a-c]$ can be sensitive to changes
          percent = as.numeric(percent)) %>%
   filter(!(State %in% c("Total U.S.", "Northeast", "Midwest", "South", "West")))
 
+# reorder `State` by `percent` variable(order by median)
 data_marj %>%
   filter(age == "12-17") %>% 
   mutate(State = fct_reorder(State, percent)) %>% 
@@ -85,16 +182,16 @@ read_html(urls[1]) %>%
   html_text()
 ```
 
-    ##  [1] "Phillips VS Oral-B"                  
-    ##  [2] "Very good product"                   
-    ##  [3] "Too hard bristles"                   
-    ##  [4] "Fast shipping"                       
-    ##  [5] "Not as powerful as some other models"
-    ##  [6] "One year in use"                     
-    ##  [7] "Holds a good charge"                 
-    ##  [8] "Five Stars"                          
-    ##  [9] "Terrible brush"                      
-    ## [10] "great toothbrush!"
+    ##  [1] "Five Stars"                          
+    ##  [2] "I guess cheaper means lower quality" 
+    ##  [3] "Head very small"                     
+    ##  [4] "Doesn’t last, keep having to replace"
+    ##  [5] "Phillips VS Oral-B"                  
+    ##  [6] "Very good product"                   
+    ##  [7] "Too hard bristles"                   
+    ##  [8] "Fast shipping"                       
+    ##  [9] "Not as powerful as some other models"
+    ## [10] "One year in use"
 
 ``` r
 read_html(urls[2]) %>% 
@@ -102,16 +199,11 @@ read_html(urls[2]) %>%
   html_text()
 ```
 
-    ##  [1] "Poor quality"                                                                    
-    ##  [2] "BROKE AFTER 6 MONTHS."                                                           
-    ##  [3] "Toothbrush"                                                                      
-    ##  [4] "Poor ultrasonic toothbrush"                                                      
-    ##  [5] "Five Stars"                                                                      
-    ##  [6] "No bad surprises here"                                                           
-    ##  [7] "Great!"                                                                          
-    ##  [8] "Philips Sonicar 2 Series plaque control rechargeable electric toothbrush  Hx6211"
-    ##  [9] "Great."                                                                          
-    ## [10] "just valued as this price."
+    ##  [1] "Holds a good charge"        "Five Stars"                
+    ##  [3] "Terrible brush"             "great toothbrush!"         
+    ##  [5] "Poor quality"               "BROKE AFTER 6 MONTHS."     
+    ##  [7] "Toothbrush"                 "Poor ultrasonic toothbrush"
+    ##  [9] "Five Stars"                 "No bad surprises here"
 
 Biostat Methods I Example
 =========================
@@ -180,6 +272,64 @@ bmi_data %>%
 | indlow        |    -2.402|    0.002|
 | indhigh       |     1.811|    0.014|
 | indvery\_high |     2.100|    0.004|
+
+weather data
+============
+
+``` r
+weather_df = 
+  rnoaa::meteo_pull_monitors(c("USW00094728", "USC00519397", "USS0023B17S"),
+                      var = c("PRCP", "TMIN", "TMAX"), 
+                      date_min = "2017-01-01",
+                      date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY", 
+                      USC00519397 = "Waikiki_HA",
+                      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+weather_df
+```
+
+    ## # A tibble: 1,095 x 6
+    ##    name           id          date        prcp  tmax  tmin
+    ##    <chr>          <chr>       <date>     <dbl> <dbl> <dbl>
+    ##  1 CentralPark_NY USW00094728 2017-01-01     0   8.9   4.4
+    ##  2 CentralPark_NY USW00094728 2017-01-02    53   5     2.8
+    ##  3 CentralPark_NY USW00094728 2017-01-03   147   6.1   3.9
+    ##  4 CentralPark_NY USW00094728 2017-01-04     0  11.1   1.1
+    ##  5 CentralPark_NY USW00094728 2017-01-05     0   1.1  -2.7
+    ##  6 CentralPark_NY USW00094728 2017-01-06    13   0.6  -3.8
+    ##  7 CentralPark_NY USW00094728 2017-01-07    81  -3.2  -6.6
+    ##  8 CentralPark_NY USW00094728 2017-01-08     0  -3.8  -8.8
+    ##  9 CentralPark_NY USW00094728 2017-01-09     0  -4.9  -9.9
+    ## 10 CentralPark_NY USW00094728 2017-01-10     0   7.8  -6  
+    ## # ... with 1,085 more rows
+
+``` r
+weather_df %>%
+  mutate(name = fct_relevel(name, c("Waikiki_HA", "CentralPark_NY", "Waterhole_WA"))) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+```
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_ydensity).
+
+![](strings_and_factors_files/figure-markdown_github/weather-1.png)
+
+``` r
+weather_df %>%
+  mutate(name = fct_reorder(name, tmax)) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+```
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_ydensity).
+
+![](strings_and_factors_files/figure-markdown_github/weather-2.png)
 
 Restaurant inspections
 ======================
@@ -268,6 +418,8 @@ nyc_inspections %>%
 ![](strings_and_factors_files/figure-markdown_github/unnamed-chunk-6-2.png)
 
 ``` r
+#if you want to relabel(change the name of the factor) the factor
+## this gives warning message and gives NA.
 nyc_inspections %>% 
   filter(str_detect(dba, regex("pizza", ignore_case = TRUE))) %>%
   mutate(boro = fct_infreq(boro),
@@ -281,6 +433,7 @@ nyc_inspections %>%
 ![](strings_and_factors_files/figure-markdown_github/unnamed-chunk-6-3.png)
 
 ``` r
+## instead, use fct_recode.
 nyc_inspections %>% 
   filter(str_detect(dba, regex("pizza", ignore_case = TRUE))) %>%
   mutate(boro = fct_infreq(boro),
@@ -289,3 +442,11 @@ nyc_inspections %>%
 ```
 
 ![](strings_and_factors_files/figure-markdown_github/unnamed-chunk-6-4.png)
+
+``` r
+vec_sex = factor(c('male', 'female', 'male', 'female'))
+vec_sex[1] = "Male'"
+```
+
+    ## Warning in `[<-.factor`(`*tmp*`, 1, value = "Male'"): invalid factor level,
+    ## NA generated
